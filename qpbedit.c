@@ -32,8 +32,9 @@ static void usage(char **argv)
 
 int main(int argc, char *argv[])
 {
-	char * model, * prod;
+	char * model = 0, *prod = 0;
 	int c, t = 0, i_opt = 0;
+	FILE * f = 0;
 	const struct option s_opt[] = 
 	{
 		{"model",			required_argument,	0,	'm'	},
@@ -67,13 +68,18 @@ int main(int argc, char *argv[])
 		 
 	if (optind < argc )
 	{
-	//in = fopen(argv[optind], "rb");
+		f = fopen(argv[optind], "r+");
+		if(!f)
+		{
+			printf("File %s doesn't exists!", argv[optind]);
+			exit(EXIT_FAILURE);
+		}
 		printf ("Input file: %s\n", argv[optind]);
 	}
 	else
 	{
 		printf("Specify input file.\n");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 	printf("=====================================\n"
 		   "Quick Build.Prop Edit v. 0.1 by lolet\n"
@@ -82,6 +88,16 @@ int main(int argc, char *argv[])
 	if(prod) printf("Producer : %s\n", prod);
 	if(t) printf("Timestamp : %d\n", t);
 	
-	return 0;
+	while(!feof(f))
+	{
+		char * l = 0;
+		size_t len = 0;
+		size_t s = getline(&l, &len, f);
+		printf("%s",l);
+		free(l);
+		if(s == -1) break;
+	}
+	fclose(f);
+	return EXIT_SUCCESS;
 }
 
