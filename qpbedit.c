@@ -16,8 +16,30 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <getopt.h>
+#include <time.h>
 
+char *strstrip(char *s)
+{
+    size_t size;
+    char *end;
+
+    size = strlen(s);
+
+    if (!size)
+    	return s;
+
+    end = s + size - 1;
+    while (end >= s && isspace(*end))
+    	end--;
+    *(end + 1) = '\0';
+
+    while (*s && isspace(*s))
+    	s++;
+
+    return s;
+}
 
 static void usage(char **argv)
 {
@@ -33,8 +55,9 @@ static void usage(char **argv)
 int main(int argc, char *argv[])
 {
 	char * model = 0, *prod = 0;
-	int c, t = 0, i_opt = 0;
-	FILE * f = 0;
+	int c, i_opt = 0;
+	time_t t = {0};
+	FILE * f;
 	const struct option s_opt[] = 
 	{
 		{"model",			required_argument,	0,	'm'	},
@@ -55,7 +78,7 @@ int main(int argc, char *argv[])
 			prod = optarg;
 			break;
 		case 'u':
-			t = time(NULL);
+			time(&t);
 			break;
 		case 'h':
 			usage(argv);
@@ -68,36 +91,98 @@ int main(int argc, char *argv[])
 		 
 	if (optind < argc )
 	{
-		f = fopen(argv[optind], "r+");
+		f = fopen(argv[optind], "r");
 		if(!f)
 		{
 			printf("File %s doesn't exists!", argv[optind]);
 			exit(EXIT_FAILURE);
 		}
-		printf ("Input file: %s\n", argv[optind]);
 	}
 	else
 	{
-		printf("Specify input file.\n");
-		exit(EXIT_FAILURE);
+	
+		f = fopen("build.prop", "r");
+		if(!f)
+		{
+			printf("Didn't find build.prop file!");
+			exit(EXIT_FAILURE);
+		}
+//		printf("Specify input file.\n");
+//		exit(EXIT_FAILURE);
 	}
-	printf("=====================================\n"
-		   "Quick Build.Prop Edit v. 0.1 by lolet\n"
-		   "=====================================\n");
+	printf("===========================================\n"
+		   "/Q/uick /B/uild./P/rop Edit v. 0.2 by lolet\n"
+		   "===========================================\n");
+	printf ("Input file: %s\n", argv[optind] ? argv[optind] : "build.prop");
 	if(model) printf("Model : %s\n", model);
 	if(prod) printf("Producer : %s\n", prod);
-	if(t) printf("Timestamp : %d\n", t);
+	if(t) printf("Timestamp : %d\n", (int)t);
+	
+	FILE * ft = fopen("build.prop.tmp","w");
+	if(!ft)
+	{
+		printf("Cannot create temporary file!");
+		fclose(ft);
+		exit(EXIT_FAILURE);
+	}
 	
 	while(!feof(f))
 	{
 		char * l = 0;
 		size_t len = 0;
 		size_t s = getline(&l, &len, f);
-		printf("%s",l);
+		char * skip = strtok(l, "#");
+		if(skip && skip == l && skip[0] != '\n')
+		{
+			char *key, *val = 0;
+			key = strtok(l,"=");
+			if(key)
+			{
+				val = strtok(NULL,"");
+				strstrip(key);
+				if(val)
+					strstrip(val);
+				if((!strcmp(key, "ro.product.model") || !strcmp(key, "ro.product.name") ||
+				   !strcmp(key, "ro.product.device")) && model)
+				{
+					fprintf(ft, "%s=%s\n", key, model);
+				}
+				else if((!strcmp(key, "ro.product.brand") || !strcmp(key, "ro.product.manufacturer")) && prod)
+				{
+					fprintf(ft, "%s=%s\n", key, prod);
+				}
+			//	else if(!strcmp(key,"ro.build.fingerprint")
+		//		{
+					
+			//	}
+				else if(!strcmp(key,"ro.build.date.utc") && t)
+				{
+					fprintf(ft, "%s=%d\n", key,  (int)t);
+				}
+				else if(!strcmp(key,"ro.build.date") && t)
+				{
+					char d[80];
+					strftime(d,80,"%Y %m %d %T %Z",localtime(&t));
+					fprintf(ft,"%s=%s\n", key, d);
+				} 
+				else if(!strcmp(key,"ro.build.version.incremental") && t)
+				{
+					char d[80];
+					strftime(d,80,"%Y%m%d.%H%M%S",localtime(&t));
+					fprintf(ft,"%s=%s\n", key, d);
+				}
+				else
+					fprintf(ft, "%s=%s\n", key, val);
+			}
+		}
+		else fputs(l, ft);
 		free(l);
 		if(s == -1) break;
 	}
+	fclose(ft);
 	fclose(f);
+	
+//	rename("build.prop.tmp","build.prop");
 	return EXIT_SUCCESS;
 }
 
