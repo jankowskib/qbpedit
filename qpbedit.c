@@ -43,10 +43,11 @@ char *strstrip(char *s)
 
 static void usage(char **argv)
 {
-	printf("Usage: %s [options] file\n"
+	printf("Usage: %s options [file (default: build.prop)]\n"
 		"\t-m,\t--model [text]\t\tchange model name\n"
 		"\t-p,\t--producer [text]\tchange producer name\n"
 		"\t-u,\t--update-timestamp\tupdate timestamp to current one\n"
+		"\t-u,\t--update-dev [user]\tupdate build maker to user and host to current one\n"
 		"\t-h,\t--help\t\t\tdisplay this help and exit\n"
 		, argv[0]
 	);
@@ -54,7 +55,7 @@ static void usage(char **argv)
 
 int main(int argc, char *argv[])
 {
-	char * model = 0, *prod = 0;
+	char * model = 0, *prod = 0, *dev = 0;
 	int c, i_opt = 0;
 	time_t t = {0};
 	FILE * f;
@@ -63,11 +64,12 @@ int main(int argc, char *argv[])
 		{"model",			required_argument,	0,	'm'	},
 		{"producer",		required_argument,	0,	'p'	},
 		{"update-timestamp",no_argument,		0,	'u'	},
+		{"update-dev",		required_argument,	0,	'd' },
 		{"help",			no_argument,		0,	'h'	},
 		{0,					0,					0,	0	}
 	};
 	
-	while((c = getopt_long(argc, argv, "m:p:uh", s_opt, &i_opt)) != -1) 
+	while((c = getopt_long(argc, argv, "m:p:uhl:", s_opt, &i_opt)) != -1) 
 	{
 		switch(c) 
 		{
@@ -79,6 +81,9 @@ int main(int argc, char *argv[])
 			break;
 		case 'u':
 			time(&t);
+			break;
+		case 'd':
+			dev = optarg;
 			break;
 		case 'h':
 			usage(argv);
@@ -143,33 +148,44 @@ int main(int argc, char *argv[])
 				if(val)
 					strstrip(val);
 				if((!strcmp(key, "ro.product.model") || !strcmp(key, "ro.product.name") ||
-				   !strcmp(key, "ro.product.device")) && model)
+				   !strcmp(key, "ro.product.device") || !strcmp(key, "ro.build.product")) && model)
 				{
 					fprintf(ft, "%s=%s\n", key, model);
+				    printf("Changed: %s: %s -> %s \n", key, val, model);
 				}
 				else if((!strcmp(key, "ro.product.brand") || !strcmp(key, "ro.product.manufacturer")) && prod)
 				{
 					fprintf(ft, "%s=%s\n", key, prod);
+					printf("Changed: %s: %s -> %s \n", key, val, prod);
 				}
 			//	else if(!strcmp(key,"ro.build.fingerprint")
 		//		{
 					
 			//	}
+				//else if(!strcmp(key,"ro.build.display.id") && (model || prod || t))
+				//{
+				//	char d[255] = {0};
+					
+				//	sprintf(d, "%s %s %s %s");
+				//}
 				else if(!strcmp(key,"ro.build.date.utc") && t)
 				{
 					fprintf(ft, "%s=%d\n", key,  (int)t);
+					printf("Changed: %s: %s -> %d \n", key, val, (int)t);
 				}
 				else if(!strcmp(key,"ro.build.date") && t)
 				{
-					char d[80];
+					char d[80] = {0};
 					strftime(d,80,"%Y %m %d %T %Z",localtime(&t));
 					fprintf(ft,"%s=%s\n", key, d);
+					printf("Changed: %s: %s -> %s \n", key, val, d);
 				} 
 				else if(!strcmp(key,"ro.build.version.incremental") && t)
 				{
-					char d[80];
+					char d[80] = {0};
 					strftime(d,80,"%Y%m%d.%H%M%S",localtime(&t));
 					fprintf(ft,"%s=%s\n", key, d);
+					printf("Changed: %s: %s -> %s \n", key, val, d);
 				}
 				else
 					fprintf(ft, "%s=%s\n", key, val);
