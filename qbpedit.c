@@ -19,7 +19,11 @@
 #include <string.h>
 #include <getopt.h>
 #include <time.h>
+#if defined __linux__ || defined __linux 
 #include <unistd.h>
+#elif defined _WIN32 || defined _WIN64
+char h[255] = "Windows";
+#endif
 
 char *strstrip(char *s)
 {
@@ -47,6 +51,7 @@ static void usage(char **argv)
 	printf("Usage: %s options [file (default: build.prop)]\n"
 		"\t-m,\t--model [text]\t\tchange model name\n"
 		"\t-p,\t--producer [text]\tchange producer name\n"
+		"\t-l,\t--language [lang_LANG]\tchange default language\n"
 		"\t-u,\t--update-timestamp\tupdate timestamp to current one\n"
 		"\t-d,\t--update-dev [user]\tupdate build maker to user and host to current one\n"
 		"\t-h,\t--help\t\t\tdisplay this help and exit\n"
@@ -56,7 +61,8 @@ static void usage(char **argv)
 
 int main(int argc, char *argv[])
 {
-	char * model = 0, *prod = 0, *dev = 0;
+	char * model = 0, *prod = 0, *dev = 0, *ll = 0, *lh = 0;
+	char ltmp[3] = {0};
 	int c, i_opt = 0;
 	time_t t = {0};
 	FILE * f;
@@ -64,13 +70,18 @@ int main(int argc, char *argv[])
 	{
 		{"model",			required_argument,	0,	'm'	},
 		{"producer",		required_argument,	0,	'p'	},
+		{"language",		required_argument,	0,	'l' },
 		{"update-timestamp",no_argument,		0,	'u'	},
 		{"update-dev",		required_argument,	0,	'd' },
 		{"help",			no_argument,		0,	'h'	},
 		{0,					0,					0,	0	}
 	};
+	#if defined __linux__ || defined __linux 
+	char h[255] = {0};
+	gethostname(h, 255);
+	#endif
 	
-	while((c = getopt_long(argc, argv, "m:p:uhd:", s_opt, &i_opt)) != -1) 
+	while((c = getopt_long(argc, argv, "m:p:uhd:l:", s_opt, &i_opt)) != -1) 
 	{
 		switch(c) 
 		{
@@ -79,6 +90,16 @@ int main(int argc, char *argv[])
 			break;
 		case 'p':
 			prod = optarg;
+			break;
+		case 'l':
+			if(strlen(optarg)!=5 || optarg[2] != '_') 
+			{
+			printf("Unknown parameter. Type %s --help to show usage\n", argv[0]);
+			exit(EXIT_FAILURE);	
+			}
+			strncpy(ltmp, optarg,2);
+			ll = &ltmp[0];
+			lh = &optarg[3];
 			break;
 		case 'u':
 			time(&t);
@@ -168,10 +189,18 @@ int main(int argc, char *argv[])
 				}
 				else if(!strcmp(key,"ro.build.host") && dev)
 				{	
-					char h[255] = {0};
-					gethostname(h, 255);
 					fprintf(ft, "%s=%s\n", key, h);
 					printf("Changed: %s: %s -> %s \n", key, val, h);
+				}
+				else if(!strcmp(key,"ro.product.locale.language") && ll)
+				{
+					fprintf(ft, "%s=%s\n", key, ll);
+					printf("Changed: %s: %s -> %s \n", key, val, ll);
+				}
+				else if(!strcmp(key,"ro.product.locale.region") && lh)
+				{
+					fprintf(ft, "%s=%s\n", key, lh);
+					printf("Changed: %s: %s -> %s \n", key, val, lh);					
 				}
 			//	else if(!strcmp(key,"ro.build.fingerprint")
 		//		{
@@ -213,7 +242,7 @@ int main(int argc, char *argv[])
 	fclose(ft);
 	fclose(f);
 	
-//	rename("build.prop.tmp","build.prop");
+	rename("build.prop.tmp","build.prop");
 	return EXIT_SUCCESS;
 }
 
