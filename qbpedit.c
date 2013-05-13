@@ -57,6 +57,7 @@ static void usage(char **argv)
 		"\t-h,\t--help\t\t\tdisplay this help and exit\n"
 		, argv[0]
 	);
+	exit(EXIT_FAILURE);
 }
 
 int main(int argc, char *argv[])
@@ -66,6 +67,7 @@ int main(int argc, char *argv[])
 	int c, i_opt = 0;
 	time_t t = {0};
 	FILE * f;
+	char *fname = 0;
 	const struct option s_opt[] = 
 	{
 		{"model",			required_argument,	0,	'm'	},
@@ -94,7 +96,7 @@ int main(int argc, char *argv[])
 		case 'l':
 			if(strlen(optarg)!=5 || optarg[2] != '_') 
 			{
-			printf("Unknown parameter. Type %s --help to show usage\n", argv[0]);
+			printf("Usage -l lang_LANG\n", argv[0]);
 			exit(EXIT_FAILURE);	
 			}
 			strncpy(ltmp, optarg,2);
@@ -124,16 +126,18 @@ int main(int argc, char *argv[])
 			printf("File %s doesn't exists!", argv[optind]);
 			exit(EXIT_FAILURE);
 		}
+		fname = argv[optind];
 	}
 	else
 	{
-	
-		f = fopen("build.prop", "r");
+		fname = "build.prop";
+		f = fopen(fname, "r");
 		if(!f)
 		{
-			printf("Didn't find build.prop file!");
+			printf("Didn't find build.prop file in working directory!");
 			exit(EXIT_FAILURE);
 		}
+		
 //		printf("Specify input file.\n");
 //		exit(EXIT_FAILURE);
 	}
@@ -242,7 +246,7 @@ int main(int argc, char *argv[])
 	fclose(ft);
 	fclose(f);
 	
-	rename("build.prop.tmp","build.prop");
+	rename("build.prop.tmp", fname);
 	return EXIT_SUCCESS;
 }
 
