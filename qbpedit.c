@@ -54,6 +54,7 @@ static void usage(char **argv)
 		"\t-l,\t--language [lang_LANG]\tchange default language\n"
 		"\t-u,\t--update-timestamp\tupdate timestamp to current one\n"
 		"\t-d,\t--update-dev [user]\tupdate build maker to user and host to current one\n"
+		"\t-v,\t--version [text]\tchange displayed version\n"
 		"\t-h,\t--help\t\t\tdisplay this help and exit\n"
 		, argv[0]
 	);
@@ -62,7 +63,7 @@ static void usage(char **argv)
 
 int main(int argc, char *argv[])
 {
-	char * model = 0, *prod = 0, *dev = 0, *ll = 0, *lh = 0;
+	char * model = 0, *prod = 0, *dev = 0, *ll = 0, *lh = 0, *v = 0, *id = 0, *tags = 0;
 	char ltmp[3] = {0};
 	int c, i_opt = 0;
 	time_t t = {0};
@@ -75,6 +76,7 @@ int main(int argc, char *argv[])
 		{"language",		required_argument,	0,	'l' },
 		{"update-timestamp",no_argument,		0,	'u'	},
 		{"update-dev",		required_argument,	0,	'd' },
+		{"version",			required_argument,	0,	'v'	},
 		{"help",			no_argument,		0,	'h'	},
 		{0,					0,					0,	0	}
 	};
@@ -83,7 +85,7 @@ int main(int argc, char *argv[])
 	gethostname(h, 255);
 	#endif
 	
-	while((c = getopt_long(argc, argv, "m:p:uhd:l:", s_opt, &i_opt)) != -1) 
+	while((c = getopt_long(argc, argv, "m:p:uhd:l:v:", s_opt, &i_opt)) != -1) 
 	{
 		switch(c) 
 		{
@@ -92,6 +94,9 @@ int main(int argc, char *argv[])
 			break;
 		case 'p':
 			prod = optarg;
+			break;
+		case 'v':
+			v = optarg;
 			break;
 		case 'l':
 			if(strlen(optarg)!=5 || optarg[2] != '_') 
@@ -117,7 +122,14 @@ int main(int argc, char *argv[])
 			exit(EXIT_FAILURE);
 		}
 	}
-		 
+
+	
+	if(v && !model) 
+	{
+		printf("--version requires to specify --model parameter\n");
+		exit(EXIT_FAILURE);
+	}
+	
 	if (optind < argc )
 	{
 		f = fopen(argv[optind], "r");
@@ -145,9 +157,10 @@ int main(int argc, char *argv[])
 		   "/Q/uick /B/uild./P/rop Edit v. 0.2 by lolet\n"
 		   "===========================================\n");
 	printf ("Input file: %s\n", argv[optind] ? argv[optind] : "build.prop");
-	if(model) printf("Model : %s\n", model);
-	if(prod) printf("Producer : %s\n", prod);
-	if(t) printf("Timestamp : %d\n", (int)t);
+	if(model) printf("Model\t: %s\n", model);
+	if(prod) printf("Producer\t: %s\n", prod);
+	if(t) printf("Timestamp\t: %d\n", (int)t);
+	if(v) printf("Version\t: %s\n", v);
 	printf("===========================================\n");
 	
 	FILE * ft = fopen("build.prop.tmp","w");
@@ -180,8 +193,18 @@ int main(int argc, char *argv[])
 					fprintf(ft, "%s=%s\n", key, model);
 				    printf("Changed: %s: %s -> %s \n", key, val, model);
 				}
+				else if(!strcmp(key, "ro.build.id"))
+				{
+					id = strdup(val);
+					fprintf(ft, "%s=%s\n", key, val);
+				}
+				else if(!strcmp(key, "ro.build.tags"))
+				{
+					tags =strdup(val);
+					fprintf(ft, "%s=%s\n", key, val);
+				}
 				else if((!strcmp(key, "ro.product.brand") || !strcmp(key, "ro.product.manufacturer") || 
-						 !strcmp(key, "ro.product.usbfactory")) && prod)
+						 !strcmp(key, "ro.product.usbfactory") || !strcmp(key, "ro.udisk.label")) && prod)
 				{
 					fprintf(ft, "%s=%s\n", key, prod);
 					printf("Changed: %s: %s -> %s \n", key, val, prod);
@@ -196,26 +219,36 @@ int main(int argc, char *argv[])
 					fprintf(ft, "%s=%s\n", key, h);
 					printf("Changed: %s: %s -> %s \n", key, val, h);
 				}
-				else if(!strcmp(key,"ro.product.locale.language") && ll)
+				else if((!strcmp(key,"ro.product.locale.language") || !strcmp(key, "persist.sys.language")) && ll)
 				{
 					fprintf(ft, "%s=%s\n", key, ll);
 					printf("Changed: %s: %s -> %s \n", key, val, ll);
 				}
-				else if(!strcmp(key,"ro.product.locale.region") && lh)
+				else if((!strcmp(key,"ro.product.locale.region") || !strcmp(key, "persist.sys.country")) && lh)
 				{
 					fprintf(ft, "%s=%s\n", key, lh);
 					printf("Changed: %s: %s -> %s \n", key, val, lh);					
 				}
-			//	else if(!strcmp(key,"ro.build.fingerprint")
-		//		{
+				// else if(!strcmp(key,"ro.build.fingerprint" && (model && v && prod &&))
+				// {
 					
-			//	}
-				//else if(!strcmp(key,"ro.build.display.id") && (model || prod || t))
-				//{
-				//	char d[255] = {0};
-					
-				//	sprintf(d, "%s %s %s %s");
-				//}
+				// }
+				else if(!strcmp(key,"ro.build.display.id") && (model && v))
+				{
+					char d[255] = {0};
+					sprintf(d, "%s-%s",model,v);
+					fprintf(ft,"%s=%s\n", key, d);
+					printf("Changed: %s: %s -> %s \n", key, val, d);
+				}
+				else if(!strcmp(key,"ro.build.description") && (model && v))
+				{
+					char d[255] = {0};		
+					char dd[80] = {0};
+					strftime(dd,80,"%Y%m%d.%H%M%S",localtime(&t));
+					sprintf(d, "%s-%s %s %s %s",model, v, id, dd, tags);
+					fprintf(ft,"%s=%s\n", key, d);
+					printf("Changed: %s: %s -> %s \n", key, val, d);
+				}
 				else if(!strcmp(key,"ro.build.date.utc") && t)
 				{
 					fprintf(ft, "%s=%d\n", key,  (int)t);
@@ -243,6 +276,8 @@ int main(int argc, char *argv[])
 		free(l);
 		if(s == -1) break;
 	}
+	free(tags);
+	free(id);
 	fclose(ft);
 	fclose(f);
 	
