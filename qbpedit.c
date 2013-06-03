@@ -55,6 +55,7 @@ static void usage(char **argv)
 		"\t-u,\t--update-timestamp\tupdate timestamp to current one\n"
 		"\t-d,\t--update-dev [user]\tupdate build maker to user and host to current one\n"
 		"\t-v,\t--version [text]\tchange displayed version\n"
+		"\t-z,\t--time-zone [continent/city]\tchange default timezone\n"		
 		"\t-h,\t--help\t\t\tdisplay this help and exit\n"
 		, argv[0]
 	);
@@ -63,7 +64,7 @@ static void usage(char **argv)
 
 int main(int argc, char *argv[])
 {
-	char * model = 0, *prod = 0, *dev = 0, *ll = 0, *lh = 0, *v = 0, *id = 0, *tags = 0;
+	char * model = 0, *prod = 0, *dev = 0, *ll = 0, *lh = 0, *v = 0, *id = 0, *tags = 0, *zone = 0;
 	char ltmp[3] = {0};
 	int c, i_opt = 0;
 	time_t t = {0};
@@ -77,6 +78,7 @@ int main(int argc, char *argv[])
 		{"update-timestamp",no_argument,		0,	'u'	},
 		{"update-dev",		required_argument,	0,	'd' },
 		{"version",			required_argument,	0,	'v'	},
+		{"time-zone",		required_argument,	0,	'z'	},
 		{"help",			no_argument,		0,	'h'	},
 		{0,					0,					0,	0	}
 	};
@@ -85,7 +87,7 @@ int main(int argc, char *argv[])
 	gethostname(h, 255);
 	#endif
 	
-	while((c = getopt_long(argc, argv, "m:p:uhd:l:v:", s_opt, &i_opt)) != -1) 
+	while((c = getopt_long(argc, argv, "m:p:uhd:l:v:z:", s_opt, &i_opt)) != -1) 
 	{
 		switch(c) 
 		{
@@ -101,12 +103,20 @@ int main(int argc, char *argv[])
 		case 'l':
 			if(strlen(optarg)!=5 || optarg[2] != '_') 
 			{
-			printf("Usage -l lang_LANG\n", argv[0]);
-			exit(EXIT_FAILURE);	
+				printf("Usage -l lang_LANG\n", argv[0]);
+				exit(EXIT_FAILURE);	
 			}
 			strncpy(ltmp, optarg,2);
 			ll = &ltmp[0];
 			lh = &optarg[3];
+			break;
+		case 'z':
+			if(!strstr(optarg,"/"))
+			{
+				printf("Usage -z Area/City\n", argv[0]);
+				exit(EXIT_FAILURE);	
+			}
+			zone = optarg;
 			break;
 		case 'u':
 			time(&t);
@@ -267,6 +277,11 @@ int main(int argc, char *argv[])
 					strftime(d,80,"%Y%m%d.%H%M%S",localtime(&t));
 					fprintf(ft,"%s=%s\n", key, d);
 					printf("Changed: %s: %s -> %s \n", key, val, d);
+				}
+				else if(!strcmp(key,"persist.sys.timezone") && zone)
+				{
+					fprintf(ft,"%s=%s\n", key, zone);
+					printf("Changed: %s: %s -> %s \n", key, val, zone);
 				}
 				else
 					fprintf(ft, "%s=%s\n", key, val);
