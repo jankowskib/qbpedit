@@ -52,7 +52,7 @@ static void usage(char **argv)
 		"\t-m,\t--model [text]\t\tchange model name\n"
 		"\t-p,\t--producer [text]\tchange producer name\n"
 		"\t-l,\t--language [lang_LANG]\tchange default language\n"
-		"\t-u,\t--update-timestamp\tupdate timestamp to current one\n"
+		"\t-t,\t--update-timestamp\tupdate timestamp to current one\n"
 		"\t-d,\t--update-dev [user]\tupdate build maker to user and host to current one\n"
 		"\t-v,\t--version [text]\tchange displayed version\n"
 		"\t-z,\t--time-zone [continent/city]\tchange default timezone\n"		
@@ -75,7 +75,7 @@ int main(int argc, char *argv[])
 		{"model",			required_argument,	0,	'm'	},
 		{"producer",		required_argument,	0,	'p'	},
 		{"language",		required_argument,	0,	'l' },
-		{"update-timestamp",no_argument,		0,	'u'	},
+		{"update-timestamp",no_argument,		0,	't'	},
 		{"update-dev",		required_argument,	0,	'd' },
 		{"version",			required_argument,	0,	'v'	},
 		{"time-zone",		required_argument,	0,	'z'	},
@@ -87,7 +87,7 @@ int main(int argc, char *argv[])
 	gethostname(h, 255);
 	#endif
 	
-	while((c = getopt_long(argc, argv, "m:p:uhd:l:v:z:", s_opt, &i_opt)) != -1) 
+	while((c = getopt_long(argc, argv, "m:p:thd:l:v:z:", s_opt, &i_opt)) != -1) 
 	{
 		switch(c) 
 		{
@@ -126,6 +126,7 @@ int main(int argc, char *argv[])
 			break;
 		case 'h':
 			usage(argv);
+			exit(EXIT_FAILURE);	
 			break;
 		default:
 			printf("Unknown parameter. Type %s --help to show usage\n", argv[0]);
@@ -156,7 +157,7 @@ int main(int argc, char *argv[])
 		f = fopen(fname, "r");
 		if(!f)
 		{
-			printf("Didn't find build.prop file in working directory!");
+			printf("Didn't find build.prop file in working directory!\n");
 			exit(EXIT_FAILURE);
 		}
 		
@@ -166,11 +167,11 @@ int main(int argc, char *argv[])
 	printf("===========================================\n"
 		   "/Q/uick /B/uild./P/rop Edit v. 0.2 by lolet\n"
 		   "===========================================\n");
-	printf ("Input file: %s\n", argv[optind] ? argv[optind] : "build.prop");
-	if(model) printf("Model\t: %s\n", model);
-	if(prod) printf("Producer\t: %s\n", prod);
-	if(t) printf("Timestamp\t: %d\n", (int)t);
-	if(v) printf("Version\t: %s\n", v);
+	printf ("Input file:\t\t%s\n", argv[optind] ? argv[optind] : "build.prop");
+	if(model) printf("Model:\t\t%s\n", model);
+	if(prod) printf("Producer:\t\t%s\n", prod);
+	if(t) printf("Timestamp:\t\t%d\n", (int)t);
+	if(v) printf("Version:\t\t%s\n", v);
 	printf("===========================================\n");
 	
 	FILE * ft = fopen("build.prop.tmp","w");
