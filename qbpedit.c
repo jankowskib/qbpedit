@@ -118,7 +118,7 @@ int main(int argc, char *argv[])
 			}
 			zone = optarg;
 			break;
-		case 'u':
+		case 't':
 			time(&t);
 			break;
 		case 'd':
