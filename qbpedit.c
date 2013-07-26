@@ -46,6 +46,18 @@ char *strstrip(char *s)
     return s;
 }
 
+void strrepl (char *s, char c, char r)  
+{
+ 
+     char *p1;
+ 
+     for (p1 = s; *p1; ++p1) 
+	 {
+        if (*p1 == c)
+			*p1 == r;
+     }
+}
+
 static void usage(char **argv)
 {
 	printf("Usage: %s options [file (default: build.prop)]\n"
@@ -201,6 +213,11 @@ int main(int argc, char *argv[])
 				if((!strcmp(key, "ro.product.model") || !strcmp(key, "ro.product.name") ||
 				   !strcmp(key, "ro.product.device") || !strcmp(key, "ro.build.product")) && model)
 				{
+					if(!strcmp(key, "ro.product.device"))
+					{
+						strrepl(key, ' ', '_'); // Change spaces and pluses to _ to avoid google's checkin issues
+						strrepl(key, '+', '_');
+					}
 					fprintf(ft, "%s=%s\n", key, model);
 				    printf("Changed: %s: %s -> %s \n", key, val, model);
 				}
@@ -248,6 +265,8 @@ int main(int argc, char *argv[])
 				{
 					char d[255] = {0};
 					sprintf(d, "%s-%s",model,v);
+					strrepl(d, ' ', '_'); // Change spaces and pluses to _ to avoid google's checkin issues
+					strrepl(d, '+', '_');
 					fprintf(ft,"%s=%s\n", key, d);
 					printf("Changed: %s: %s -> %s \n", key, val, d);
 				}
