@@ -48,13 +48,11 @@ char *strstrip(char *s)
 
 void strrepl (char *s, char c, char r)  
 {
- 
-     char *p1;
- 
+     char *p1; 
      for (p1 = s; *p1; ++p1) 
 	 {
         if (*p1 == c)
-			*p1 == r;
+			*p1 = r;
      }
 }
 
@@ -64,7 +62,7 @@ static void usage(char **argv)
 		"\t-m,\t--model [text]\t\tchange model name\n"
 		"\t-p,\t--producer [text]\tchange producer name\n"
 		"\t-l,\t--language [lang_LANG]\tchange default language\n"
-		"\t-t,\t--update-timestamp\tupdate timestamp to current one\n"
+		"\t-t,\t--update-timestamp, --alternative-timestamp\tupdate timestamp to current one\n"
 		"\t-d,\t--update-dev [user]\tupdate build maker to user and host to current one\n"
 		"\t-v,\t--version [text]\tchange displayed version\n"
 		"\t-z,\t--time-zone [continent/city]\tchange default timezone\n"		
@@ -81,6 +79,7 @@ int main(int argc, char *argv[])
 	int c, i_opt = 0;
 	time_t t = {0};
 	FILE * f;
+	char bAltTime = 0;
 	char *fname = 0;
 	const struct option s_opt[] = 
 	{
@@ -88,6 +87,7 @@ int main(int argc, char *argv[])
 		{"producer",		required_argument,	0,	'p'	},
 		{"language",		required_argument,	0,	'l' },
 		{"update-timestamp",no_argument,		0,	't'	},
+		{"alternative-timestamp",no_argument,	0,	'a'	},
 		{"update-dev",		required_argument,	0,	'd' },
 		{"version",			required_argument,	0,	'v'	},
 		{"time-zone",		required_argument,	0,	'z'	},
@@ -99,7 +99,7 @@ int main(int argc, char *argv[])
 	gethostname(h, 255);
 	#endif
 	
-	while((c = getopt_long(argc, argv, "m:p:thd:l:v:z:", s_opt, &i_opt)) != -1) 
+	while((c = getopt_long(argc, argv, "m:p:tahd:l:v:z:", s_opt, &i_opt)) != -1) 
 	{
 		switch(c) 
 		{
@@ -129,7 +129,9 @@ int main(int argc, char *argv[])
 				exit(EXIT_FAILURE);	
 			}
 			zone = optarg;
-			break;
+			break;	
+		case 'a':
+			bAltTime = 1;
 		case 't':
 			time(&t);
 			break;
@@ -177,7 +179,7 @@ int main(int argc, char *argv[])
 //		exit(EXIT_FAILURE);
 	}
 	printf("===========================================\n"
-		   "/Q/uick /B/uild./P/rop Edit v. 0.2 by lolet\n"
+		   "/Q/uick /B/uild./P/rop Edit v. 0.2b by lolet\n"
 		   "===========================================\n");
 	printf ("Input file:\t\t%s\n", argv[optind] ? argv[optind] : "build.prop");
 	if(model) printf("Model:\t\t%s\n", model);
@@ -287,7 +289,10 @@ int main(int argc, char *argv[])
 				else if(!strcmp(key,"ro.build.date") && t)
 				{
 					char d[80] = {0};
-					strftime(d,80,"%Y %m %d %T %Z",localtime(&t));
+					if(bAltTime)
+						strftime(d,80,"%a %b %m %d %T %Z %Y",localtime(&t));
+					else
+						strftime(d,80,"%Y %m %d %T %Z",localtime(&t));
 					fprintf(ft,"%s=%s\n", key, d);
 					printf("Changed: %s: %s -> %s \n", key, val, d);
 				} 
