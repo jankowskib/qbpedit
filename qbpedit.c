@@ -215,13 +215,16 @@ int main(int argc, char *argv[])
 				if((!strcmp(key, "ro.product.model") || !strcmp(key, "ro.product.name") ||
 				   !strcmp(key, "ro.product.device") || !strcmp(key, "ro.build.product")) && model)
 				{
+					char * devstr;
+					asprintf(&devstr,"%s",model);
 					if(!strcmp(key, "ro.product.device"))
-					{
-						strrepl(key, ' ', '_'); // Change spaces and pluses to _ to avoid google's checkin issues
-						strrepl(key, '+', '_');
-					}
-					fprintf(ft, "%s=%s\n", key, model);
-				    printf("Changed: %s: %s -> %s \n", key, val, model);
+						{
+							strrepl(devstr, ' ', '_'); // Change spaces and pluses to _ to avoid google's checkin issues
+							strrepl(devstr, '+', '_');
+						}
+					fprintf(ft, "%s=%s\n", key, devstr);
+				    printf("Changed: %s: %s -> %s \n", key, val, devstr);
+					free(devstr);
 				}
 				else if(!strcmp(key, "ro.build.id"))
 				{
