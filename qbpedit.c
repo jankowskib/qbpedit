@@ -74,7 +74,7 @@ static void usage(char **argv)
 
 int main(int argc, char *argv[])
 {
-	char * model = 0, *prod = 0, *dev = 0, *ll = 0, *lh = 0, *v = 0, *id = 0, *tags = 0, *zone = 0;
+	char * model = 0, *prod = 0, *dev = 0, *ll = 0, *lh = 0, *v = 0, *id = 0, *tags = 0, *zone = 0, *andver = 0, *btype = 0;
 	char ltmp[3] = {0};
 	int c, i_opt = 0;
 	time_t t = {0};
@@ -179,7 +179,7 @@ int main(int argc, char *argv[])
 //		exit(EXIT_FAILURE);
 	}
 	printf("===========================================\n"
-		   "/Q/uick /B/uild./P/rop Edit v. 0.2b by lolet\n"
+		   "/Q/uick /B/uild./P/rop Edit v. 0.2c by lolet\n"
 		   "===========================================\n");
 	printf ("Input file:\t\t%s\n", argv[optind] ? argv[optind] : "build.prop");
 	if(model) printf("Model:\t\t%s\n", model);
@@ -217,11 +217,10 @@ int main(int argc, char *argv[])
 				{
 					char * devstr;
 					asprintf(&devstr,"%s",model);
-					if(!strcmp(key, "ro.product.device"))
-						{
-							strrepl(devstr, ' ', '_'); // Change spaces and pluses to _ to avoid google's checkin issues
-							strrepl(devstr, '+', '_');
-						}
+					if(!strcmp(key, "ro.product.device") || !strcmp(key, "ro.build.product") || !strcmp(key, "ro.product.name"))
+					{
+						strrepl(devstr, ' ', '_'); // Change spaces to _ to avoid google's checkin issues
+					}
 					fprintf(ft, "%s=%s\n", key, devstr);
 				    printf("Changed: %s: %s -> %s \n", key, val, devstr);
 					free(devstr);
@@ -231,9 +230,19 @@ int main(int argc, char *argv[])
 					id = strdup(val);
 					fprintf(ft, "%s=%s\n", key, val);
 				}
+				else if(!strcmp(key, "ro.build.version.release"))
+				{
+					andver = strdup(val);
+					fprintf(ft, "%s=%s\n", key, val);
+				}
 				else if(!strcmp(key, "ro.build.tags"))
 				{
 					tags =strdup(val);
+					fprintf(ft, "%s=%s\n", key, val);
+				}
+				else if(!strcmp(key, "ro.build.type"))
+				{
+					btype =strdup(val);
 					fprintf(ft, "%s=%s\n", key, val);
 				}
 				else if((!strcmp(key, "ro.product.brand") || !strcmp(key, "ro.product.manufacturer") || 
@@ -262,11 +271,19 @@ int main(int argc, char *argv[])
 					fprintf(ft, "%s=%s\n", key, lh);
 					printf("Changed: %s: %s -> %s \n", key, val, lh);					
 				}
-				// else if(!strcmp(key,"ro.build.fingerprint" && (model && v && prod &&))
-				// {
+				else if(!strcmp(key,"ro.build.fingerprint") && (model && t && prod))
+				{
+					// BRAND/PRODUCT/DEVICE:VERSION.REL/ID/VER.INCREM:TYPE/TAGS
+					char * devstr;
+					asprintf(&devstr,"%s",model);
 					
-				// }
-				else if(!strcmp(key,"ro.build.display.id") && (model && v))
+					strrepl(devstr, ' ', '_'); // Change spaces to _ to avoid google's checkin issues
+					
+					fprintf(ft, "%s=%s/%s/%s:%s/%s/%d:%s/%s\n", key, prod, devstr, devstr, andver, id, (int)t, btype, tags);
+				    printf("Changed: %s: %s -> %s=%s/%s/%s:%s/%s/%d:%s/%s\n", key, val, key, prod, devstr, devstr, andver, id, (int)t, btype, tags);
+				    free(devstr);
+				}
+				else if((!strcmp(key,"ro.build.display.id") || !strcmp(key,"ro.custom.build.version")) && (model && v))
 				{
 					char d[255] = {0};
 					sprintf(d, "%s-%s",model,v);
